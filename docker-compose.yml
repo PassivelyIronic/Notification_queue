@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   redis:
     image: redis:7
@@ -24,10 +26,7 @@ services:
       - app-network
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    platform: linux/amd64
+    build: .
     ports:
       - "3100:3100"
     environment:
@@ -42,10 +41,7 @@ services:
     command: python -m src.index
 
   push-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    platform: linux/amd64
+    build: .
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -56,10 +52,7 @@ services:
     command: python -m sim.push_worker
 
   email-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    platform: linux/amd64
+    build: .
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
