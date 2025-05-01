@@ -9,7 +9,7 @@ from pymongo import MongoClient
 
 def check_mongo():
     try:
-        mongodb_uri = os.environ.get('MONGODB_URI', 'mongodb://root:example@mongo:27017/notification_manager?authSource=admin') 
+        mongodb_uri = os.environ.get('MONGODB_URI', 'mongodb://mongo:27017/notification_manager') 
         client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=2000)
         client.server_info()
         return True

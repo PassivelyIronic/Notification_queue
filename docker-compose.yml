@@ -16,16 +16,15 @@ services:
   mongo:
     image: mongo:6
     hostname: mongo
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-      MONGO_INITDB_DATABASE: notification_manager
+    ports:
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     networks:
       - app-network
+    # Simplified healthcheck without authentication
     healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017 --quiet
       interval: 10s
       timeout: 10s
       retries: 5
@@ -38,7 +37,7 @@ services:
       - APP_PORT=3100
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MONGODB_URI=mongodb://root:example@mongo:27017/notification_manager?authSource=admin
+      - MONGODB_URI=mongodb://mongo:27017/notification_manager
     depends_on:
       redis:
         condition: service_healthy
@@ -58,7 +57,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MONGODB_URI=mongodb://root:example@mongo:27017/notification_manager?authSource=admin
+      - MONGODB_URI=mongodb://mongo:27017/notification_manager
     depends_on:
       - redis
       - mongo
@@ -74,7 +73,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MONGODB_URI=mongodb://root:example@mongo:27017/notification_manager?authSource=admin
+      - MONGODB_URI=mongodb://mongo:27017/notification_manager
     depends_on:
       - redis
       - mongo
