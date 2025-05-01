@@ -1,19 +1,34 @@
 # services/notification_sender.py
 import random
-from queues.notification_queue import push_queue, mail_queue
+import logging
+from rq import get_current_job
+
+logger = logging.getLogger(__name__)
 
 def send_notification(notification_data):
     """
-    Funkcja odpowiedzialna za wysyłanie powiadomień
+    Function responsible for sending notifications.
+    This is the main entry point for the notification job.
     """
-    # Symulacja losowego błędu (50% szansy)
+    job = get_current_job()
+    logger.info(f"Processing notification job {job.id}")
+    
+    # Get notification details
+    recipient = notification_data.get('recipient')
+    content = notification_data.get('content')
+    channel = notification_data.get('channel')
+    
+    # Simulate random failure (50% chance)
     if random.random() < 0.5:
-        raise Exception('Wysyłka zakończona niepowodzeniem (50% szans :P)')
+        logger.warning(f"Sending failed for {channel} notification to {recipient}")
+        raise Exception('Delivery failed (50% chance simulation)')
     
-    # Przekierowanie do odpowiedniej kolejki w zależności od kanału
-    if notification_data['channel'] == 'push':
-        push_queue.enqueue('send_push', notification_data)
-    elif notification_data['channel'] == 'mail':
-        mail_queue.enqueue('send_mail', notification_data)
+    # Log successful notification
+    logger.info(f"Successfully sent {channel} notification to {recipient}: {content[:30]}...")
     
-    return {"success": True}
+    return {
+        "success": True,
+        "job_id": job.id,
+        "recipient": recipient,
+        "channel": channel
+    }

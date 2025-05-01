@@ -1,32 +1,50 @@
 import redis
-from rq import Queue, Worker, Connection
-from rq.job import Job
-import random
+from rq import Queue
+import logging
 
 from config.redis_conf import redis_config
 from config.notification_conf import notification_config
+from services.notification_sender import send_notification
 
-# Połączenie Redis
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Redis connection
 redis_conn = redis.Redis(
     host=redis_config['host'],
     port=redis_config['port']
 )
 
-# Tworzenie kolejek
+# Creating queues
 notification_queue = Queue('notifications', connection=redis_conn)
 push_queue = Queue(notification_config['channels']['push']['queue_name'], connection=redis_conn)
 mail_queue = Queue(notification_config['channels']['mail']['queue_name'], connection=redis_conn)
 
-# Funkcja do przetwarzania powiadomień
-def process_notification(notification_data):
-    # Symulacja losowego błędu (50% szansy)
-    if random.random() < 0.5:
-        raise Exception('Wysyłka zakończona niepowodzeniem (50% szans :P)')
+# Register functions with RQ
+push_queue.enqueue_call = push_queue._create_job
+
+# Function to schedule notification
+def schedule_notification(notification_data, job_id=None, delay=0, priority=None, retry=None):
+    """
+    Schedule a notification for sending
+    """
+    logger.info(f"Scheduling notification for {notification_data['recipient']} via {notification_data['channel']}")
     
-    # Przekierowanie do odpowiedniej kolejki w zależności od kanału
-    if notification_data['channel'] == 'push':
-        push_queue.enqueue('send_push', notification_data)
-    elif notification_data['channel'] == 'mail':
-        mail_queue.enqueue('send_mail', notification_data)
+    # Set default retry if not specified
+    if retry is None:
+        retry = 3
     
-    return {"success": True}
+    job = notification_queue.enqueue(
+        send_notification,
+        notification_data,
+        job_id=job_id,
+        result_ttl=86400,  # Results expire after 1 day
+        failure_ttl=86400,  # Failed jobs expire after 1 day
+        retry=retry,
+        job_timeout=300,  # 5 minutes timeout
+        priority=priority
+    )
+    
+    logger.info(f"Notification scheduled with job ID: {job.id}")
+    return job

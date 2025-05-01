@@ -6,12 +6,14 @@ class Notification(Document):
     channel = StringField(required=True, choices=['push', 'mail'])
     recipient = StringField(required=True)
     timezone = StringField(required=True)
+    priority = StringField(required=True, choices=['low', 'high'], default='low')
     scheduled_at = DateTimeField(required=True)
     
     meta = {
         'collection': 'notifications',
         'indexes': [
             'recipient',
-            'scheduled_at'
+            'scheduled_at',
+            'priority'
         ]
     }
